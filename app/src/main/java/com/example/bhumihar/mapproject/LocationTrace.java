@@ -34,6 +34,8 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -45,6 +47,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class LocationTrace extends FragmentActivity implements OnMapReadyCallback
         ,LocationListener,GoogleApiClient.ConnectionCallbacks,
@@ -117,7 +121,7 @@ public class LocationTrace extends FragmentActivity implements OnMapReadyCallbac
 
                 if (MarkerPoints.size() > 1) {
                     MarkerPoints.clear();
-                    //mMap.clear();
+                    mMap.clear();
                 }
 
                 AddressString = AddressText.getText().toString() ;
@@ -258,6 +262,20 @@ public class LocationTrace extends FragmentActivity implements OnMapReadyCallbac
             // Invokes the thread for parsing the JSON data
             parserTask.execute(result);
 
+            JSONObject jObject;
+            try {
+                jObject = new JSONObject(result);
+
+                int toll = computeTotalDistance(jObject) ;
+                Log.d("Total Tolls",String.valueOf(toll));
+                Toast.makeText(LocationTrace.this, "Total toll in route is :"+String.valueOf(toll), Toast.LENGTH_SHORT).show();
+
+            } catch (Exception e) {
+                Log.d("ParserTask",e.toString());
+                e.printStackTrace();
+            }
+
+
         }
     }
 
@@ -282,6 +300,7 @@ public class LocationTrace extends FragmentActivity implements OnMapReadyCallbac
 
                 // Starts parsing data
                 routes = parser.parse(jObject);
+
                 Log.d("ParserTask","Executing routes");
                 Log.d("ParserTask",routes.toString());
 
@@ -336,6 +355,67 @@ public class LocationTrace extends FragmentActivity implements OnMapReadyCallbac
         }
     }
 
+
+    public boolean containsWord(String string, String word) {
+
+        //String pattern1 = "(?:[^.\\w]|^|^\\W+)"  ;
+        //String pattern2 = "(?:[^.\\w]|\\\\W(?=\\\\W+|$)|$)";
+        //Pattern mPattern = Pattern.compile("toll");
+
+        //Matcher matcher = mPattern.matcher(string);
+        if (string.toLowerCase().indexOf(word.toLowerCase()) != -1 )
+        {
+            Log.e("Match","Toll Found");
+            return true ;
+        }
+
+
+        return false ;
+
+    }
+
+    public int computeTotalDistance(JSONObject jObject){
+
+        int totalTolls=0;
+        JSONArray jRoutes;
+        JSONArray jLegs;
+        JSONArray jSteps;
+
+
+        try {
+
+            jRoutes = jObject.getJSONArray("routes");
+
+            /** Traversing all routes */
+            for(int i=0;i<jRoutes.length();i++){
+                jLegs = ( (JSONObject)jRoutes.get(i)).getJSONArray("legs");
+
+
+                /** Traversing all legs */
+                for(int j=0;j<jLegs.length();j++){
+                    jSteps = ( (JSONObject)jLegs.get(j)).getJSONArray("steps");
+
+                    /** Traversing all steps */
+                    for(int k=0;k<jSteps.length();k++){
+                        String html_instructions = ((JSONObject)jSteps.get(k)).getString("html_instructions");
+                        Log.e("toll road",html_instructions);
+                        if(containsWord(html_instructions, "toll")){
+                            totalTolls = totalTolls + 1;
+                        }
+                    }
+                }
+            }
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }catch (Exception e){
+        } finally {
+            Log.e("Toll no","Toatal Toll is :" + String.valueOf(totalTolls));
+        }
+
+
+        return totalTolls ;
+    }
 
 
     public LatLng getLocationFromAddress(String strAddress) throws IOException {

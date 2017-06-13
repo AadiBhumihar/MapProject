@@ -23,6 +23,7 @@ public class DataParser  {
         JSONArray jRoutes;
         JSONArray jLegs;
         JSONArray jSteps;
+        JSONArray jSteps1;
 
         try {
 
@@ -36,9 +37,13 @@ public class DataParser  {
                 /** Traversing all legs */
                 for(int j=0;j<jLegs.length();j++){
                     jSteps = ( (JSONObject)jLegs.get(j)).getJSONArray("steps");
+                    jSteps1 = ( (JSONObject)jLegs.get(j)).getJSONArray("steps");
+                    jSteps1 = (JSONArray)jSteps1 ;
 
                     /** Traversing all steps */
                     for(int k=0;k<jSteps.length();k++){
+                        String html_instructions = ((JSONObject)jSteps.get(k)).getString("html_instructions");
+
                         String polyline = "";
                         polyline = (String)((JSONObject)((JSONObject)jSteps.get(k)).get("polyline")).get("points");
                         List<LatLng> list = decodePoly(polyline);
